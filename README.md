@@ -34,4 +34,6 @@ Our project aims to empower farmers by providing them with data-driven insights 
 
 ## Team
 - Kavy Patel
-- [Other Team Members]
+- Om sangani
+- Harsh Mavani
+- Krishiv Patel
