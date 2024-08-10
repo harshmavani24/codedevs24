@@ -4448,6 +4448,477 @@
 # logger.debug("Models initialized successfully.")
 
 
+# from django.http import JsonResponse
+# import json
+# import requests
+# from threading import Thread
+# from django.conf import settings
+# from django.views.decorators.csrf import csrf_exempt
+# from sklearn.ensemble import RandomForestRegressor
+# from sklearn.model_selection import train_test_split
+# from sklearn.metrics import mean_squared_error
+# from sklearn.preprocessing import StandardScaler
+# import numpy as np
+# import logging
+# import joblib
+# from sklearn.preprocessing import LabelEncoder
+# from sklearn.impute import SimpleImputer
+
+# from sklearn.ensemble import RandomForestRegressor
+# from sklearn.model_selection import train_test_split
+# from sklearn.metrics import mean_squared_error
+# from sklearn.preprocessing import StandardScaler
+# import numpy as np
+# import joblib
+
+# # Function to load data
+# def load_data():
+#     logger.debug("Loading dummy data...")
+#     # Replace this with actual data loading logic
+#     data = np.random.rand(100, 10)  # Dummy dataset with 100 samples and 10 features
+#     X = data[:, :-2]  # Features: soil properties, weather, etc.
+#     y_P = data[:, -2]  # Target: Phosphorus levels
+#     y_K = data[:, -1]  # Target: Potassium levels
+#     logger.debug("Data loaded successfully.")
+#     return X, y_P, y_K
+
+# # Function to train the models
+# def train_model(X, y_P, y_K):
+#     logger.debug("Training models...")
+#     X_train, X_test, y_P_train, y_P_test, y_K_train, y_K_test = train_test_split(
+#         X, y_P, y_K, test_size=0.2, random_state=42
+#     )
+
+#     scaler = StandardScaler()
+#     X_train_scaled = scaler.fit_transform(X_train[:, :8])  # Scale the first 8 features
+#     X_test_scaled = scaler.transform(X_test[:, :8])
+
+#     # Random Forest for Phosphorus prediction
+#     rf_P = RandomForestRegressor()
+#     rf_P.fit(X_train_scaled, y_P_train)
+#     y_P_pred = rf_P.predict(X_test_scaled)
+#     mse_P = mean_squared_error(y_P_test, y_P_pred)
+#     logger.info(f"Phosphorus Model MSE: {mse_P}")
+
+#     # Random Forest for Potassium prediction
+#     rf_K = RandomForestRegressor()
+#     rf_K.fit(X_train_scaled, y_K_train)
+#     y_K_pred = rf_K.predict(X_test_scaled)
+#     mse_K = mean_squared_error(y_K_test, y_K_pred)
+#     logger.info(f"Potassium Model MSE: {mse_K}")
+
+#     # Save the models and scaler
+#     joblib.dump(rf_P, 'model_phosphorus.pkl')
+#     joblib.dump(rf_K, 'model_potassium.pkl')
+#     joblib.dump(scaler, 'scaler.pkl')
+#     logger.debug("Models and scaler saved successfully.")
+
+#     return rf_P, rf_K, scaler
+
+
+# # Configure logging
+# logging.basicConfig(level=logging.DEBUG)
+# logger = logging.getLogger(__name__)
+
+# # Initialize and fit the LabelEncoder with known soil types during the application startup
+# soil_types = [
+#     'Acrisols', 'Albeluvisols', 'Alisols', 'Andosols', 'Anthrosols', 'Arenosols',
+#     'Calcisols', 'Cambisols', 'Chernozems', 'Cryosols', 'Durisols', 'Ferralsols',
+#     'Fluvisols', 'Gleysols', 'Gypsisols', 'Histosols', 'Kastanozems', 'Leptosols',
+#     'Lixisols', 'Luvisols', 'Nitisols', 'Phaeozems', 'Planosols', 'Plinthosols',
+#     'Podzols', 'Regosols', 'Solonchaks', 'Solonetz', 'Stagnosols', 'Technosols',
+#     'Umbrisols', 'Vertisols'
+# ]
+
+# soil_type_encoder = LabelEncoder()
+# soil_type_encoder.fit(soil_types)
+
+# # View: Location reverse geocoding
+# @csrf_exempt
+# def location_view(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             lat = data.get('latitude')
+#             lon = data.get('longitude')
+
+#             url = f'https://api.locationiq.com/v1/reverse.php?key={settings.LOCATIONIQ_API_KEY}&lat={lat}&lon={lon}&format=json'
+#             response = requests.get(url)
+#             location_data = response.json()
+
+#             return JsonResponse({
+#                 'address': location_data.get('display_name'),
+#                 'city': location_data.get('address', {}).get('city'),
+#                 'state': location_data.get('address', {}).get('state'),
+#                 'country': location_data.get('address', {}).get('country'),
+#                 'district': location_data.get('address', {}).get('state_district'),
+#             })
+
+#         except json.JSONDecodeError:
+#             return JsonResponse({'error': 'Invalid JSON'}, status=400)
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+#     else:
+#         return JsonResponse({'error': 'Invalid request method. Only POST allowed.'}, status=400)
+
+# # View: Autocomplete for locations
+# @csrf_exempt
+# def autocomplete_view(request):
+#     if request.method == 'GET':
+#         query = request.GET.get('q', '')
+#         if not query:
+#             return JsonResponse({'error': 'No query provided'}, status=400)
+        
+#         try:
+#             url = f'https://api.locationiq.com/v1/autocomplete.php?key={settings.LOCATIONIQ_API_KEY}&q={query}&limit=5'
+#             response = requests.get(url)
+#             autocomplete_data = response.json()
+#             return JsonResponse(autocomplete_data, safe=False)
+        
+#         except Exception as e:
+#             return JsonResponse({'error': str(e)}, status=500)
+#     else:
+#         return JsonResponse({'error': 'Invalid request method. Only GET allowed.'}, status=400)
+
+# # View: Historical Agricultural Weather Data
+# def get_historical_ag_weather(request):
+#     lat = request.GET.get('lat')
+#     lon = request.GET.get('lon')
+#     start_date = request.GET.get('start_date')
+#     end_date = request.GET.get('end_date')
+
+#     if not lat or not lon or not start_date or not end_date:
+#         return JsonResponse({'error': 'Latitude, longitude, start date, and end date are required'}, status=400)
+    
+#     url = f'https://api.weatherbit.io/v2.0/history/agweather?lat={lat}&lon={lon}&start_date={start_date}&end_date={end_date}&key={settings.WEATHERBIT_API_KEY}'
+#     response = requests.get(url)
+    
+#     if response.status_code == 200:
+#         return JsonResponse(response.json())
+#     else:
+#         return JsonResponse({'error': 'Failed to fetch data from Weatherbit API'}, status=500)
+
+# # View: Agricultural Weather Forecast Data
+# def get_ag_weather_forecast(request):
+#     lat = request.GET.get('lat')
+#     lon = request.GET.get('lon')
+
+#     if not lat or not lon:
+#         return JsonResponse({'error': 'Latitude and longitude are required'}, status=400)
+    
+#     url = f'https://api.weatherbit.io/v2.0/forecast/agweather?lat={lat}&lon={lon}&key={settings.WEATHERBIT_API_KEY}'
+#     response = requests.get(url)
+    
+#     if response.status_code == 200:
+#         return JsonResponse(response.json())
+#     else:
+#         return JsonResponse({'error': 'Failed to fetch data from Weatherbit API'}, status=500)
+
+# # View: Current Air Quality Data
+# def get_current_air_quality(request):
+#     lat = request.GET.get('lat')
+#     lon = request.GET.get('lon')
+#     if not lat or not lon:
+#         return JsonResponse({'error': 'Latitude and longitude are required'}, status=400)
+    
+#     url = f'http://api.weatherbit.io/v2.0/current/airquality?lat={lat}&lon={lon}&key={settings.WEATHERBIT_API_KEY}'
+#     response = requests.get(url)
+    
+#     if response.status_code == 200:
+#         return JsonResponse(response.json())
+#     else:
+#         return JsonResponse({'error': 'Failed to fetch data from Weatherbit API'}, status=500)
+
+# # View: Soil Property Data
+# def get_soil_data(request):
+#     lat = request.GET.get('lat')
+#     lon = request.GET.get('lon')
+#     depths = request.GET.getlist('depth')
+#     properties = request.GET.getlist('property')
+#     values = request.GET.getlist('value')
+
+#     if not lat or not lon:
+#         return JsonResponse({'error': 'Latitude and longitude are required.'}, status=400)
+
+#     params = {
+#         "lat": lat,
+#         "lon": lon,
+#         "depth": depths,
+#         "property": properties,
+#         "value": values,
+#     }
+
+#     url = "https://rest.isric.org/soilgrids/v2.0/properties/query"
+#     response = requests.get(url, params=params)
+
+#     if response.status_code != 200:
+#         return JsonResponse({'error': 'Failed to fetch data from the SoilGrids API.'}, status=response.status_code)
+
+#     data = response.json()
+
+#     # Extracting soil properties
+#     soil_layers = []
+#     for layer in data["properties"]["layers"]:
+#         layer_data = {
+#             "name": layer["name"],
+#             "unit": layer["unit_measure"]["mapped_units"],
+#             "depths": []
+#         }
+#         for depth in layer["depths"]:
+#             depth_data = {
+#                 "depth": depth["label"],
+#                 "values": depth["values"]
+#             }
+#             layer_data["depths"].append(depth_data)
+#         soil_layers.append(layer_data)
+
+#     return JsonResponse({"layers": soil_layers})
+
+# # View: Soil Type Data
+# @csrf_exempt
+# def get_soil_type(request):
+#     lat = request.GET.get('lat')
+#     lon = request.GET.get('lon')
+#     top_k = request.GET.get('top_k', 1)  # Default to 1 if top_k is not provided
+
+#     if not lat or not lon:
+#         return JsonResponse({'error': 'Latitude and longitude are required.'}, status=400)
+
+#     params = {
+#         "lat": lat,
+#         "lon": lon,
+#         "top_k": top_k,
+#     }
+
+#     try:
+#         response = requests.get(url="https://api-test.openepi.io/soil/type", params=params)
+#         if response.status_code != 200:
+#             return JsonResponse({'error': 'Failed to fetch data from the soil type API.'}, status=response.status_code)
+
+#         data = response.json()
+#         return JsonResponse(data)
+
+#     except Exception as e:
+#         return JsonResponse({'error': str(e)}, status=500)
+
+# # View: Crop Prediction
+# @csrf_exempt
+# def crop_prediction_view(request):
+#     if request.method == 'POST':
+#         try:
+#             data = json.loads(request.body)
+#             lat = data.get('latitude')
+#             lon = data.get('longitude')
+#             temp = data.get('temp_2m_avg')
+#             humidity = data.get('humidity')
+#             ph = data.get('ph')
+#             rainfall = data.get('rainfall')
+#             soil_type = data.get('soil_type')  # Assuming soil type is passed as a string
+
+#             # Encode the soil type
+#             if soil_type in soil_types:
+#                 soil_type_encoded = soil_type_encoder.transform([soil_type])[0]
+#             else:
+#                 soil_type_encoded = -1 
+
+#             logger.debug(f"Received data: Latitude: {lat}, Longitude: {lon}, Temp: {temp}, Humidity: {humidity}, pH: {ph}, Rainfall: {rainfall}, Soil Type: {soil_type}")
+
+#             response_data = {}
+
+#             # Run the prediction in a separate thread
+#             thread = Thread(target=run_prediction, args=(lat, lon, temp, humidity, ph, rainfall, soil_type_encoded, response_data))
+#             logger.debug("Starting prediction thread...")
+#             thread.start()
+#             thread.join()  # Wait for the thread to finish
+
+#             logger.debug("Prediction thread finished.")
+#             return JsonResponse(response_data)
+#         except json.JSONDecodeError as e:
+#             logger.error(f"JSON Decode Error: {str(e)}")
+#             return JsonResponse({'error': 'Invalid JSON'}, status=400)
+#         except Exception as e:
+#             logger.error(f"Error in crop_prediction_view: {str(e)}")
+#             return JsonResponse({'error': str(e)}, status=500)
+#     else:
+#         logger.error("Invalid request method. Only POST is allowed.")
+#         return JsonResponse({'error': 'Invalid request method. Only POST allowed.'}, status=400)
+
+# # Functions for crop prediction logic
+# def run_prediction(lat, lon, temp, humidity, ph, rainfall, soil_type_encoded, response_data):
+#     try:
+#         logger.debug(f"Running prediction for Latitude: {lat}, Longitude: {lon}")
+
+#         # Fetch all required data
+#         historical_data = get_historical_ag_weather_data(lat, lon)
+#         forecast_data = get_ag_weather_forecast_data(lat, lon)
+#         air_quality_data = get_current_air_quality_data(lat, lon)
+#         soil_data = get_soil_data_data(lat, lon)
+#         soil_type_data = get_soil_type_data(lat, lon)
+
+#         # Extract features
+#         input_features = extract_features(historical_data, forecast_data, air_quality_data, soil_data, soil_type_data)
+#         logger.debug(f"Extracted features: {input_features}")
+
+#         # Predict P and K levels
+#         P_level, K_level = predict_P_K(model_P, model_K, scaler, input_features)
+
+#         logger.debug(f"Predicted P: {P_level}, Predicted K: {K_level}")
+
+#         # Recommend crop based on predicted P and K levels and additional features
+#         recommended_crop1 = recommend_crop(P_level, K_level, temp, humidity, ph, rainfall, soil_type_encoded)
+#         logger.debug(f"Recommended Crop: {recommended_crop1}")
+
+#         response_data['predicted_P'] = P_level
+#         response_data['predicted_K'] = K_level
+#         response_data['recommended_crop1'] = recommended_crop1
+#     except Exception as e:
+#         logger.error(f"Error during prediction: {str(e)}")
+#         response_data['error'] = str(e)
+
+# def extract_features(historical_data, forecast_data, air_quality_data, soil_data, soil_type_data):
+#     # Extract features from Historical Ag-Weather Data
+#     historical_features = []
+#     if historical_data.get('data'):
+#         latest_historical = historical_data['data'][-1]  # Using the latest entry
+#         historical_features.extend([
+#             latest_historical.get('bulk_soil_density', 0),
+#             latest_historical.get('dlwrf_avg', 0),
+#             latest_historical.get('dlwrf_max', 0),
+#             latest_historical.get('evapotranspiration', 0),
+#             latest_historical.get('precip', 0),
+#             latest_historical.get('pres_avg', 0),
+#             latest_historical.get('skin_temp_avg', 0),
+#             latest_historical.get('soilm_0_10cm', 0),
+#         ])
+
+#     # Extract and encode the soil type feature
+#     soil_type_features = []
+#     if soil_type_data.get('properties'):
+#         soil_type = soil_type_data['properties'].get('most_probable_soil_type', 'unknown')
+#         if soil_type in soil_types:
+#             soil_type_encoded = soil_type_encoder.transform([soil_type])[0]
+#         else:
+#             soil_type_encoded = -1  # Use a default value for unknown soil types
+#         soil_type_features.append(soil_type_encoded)
+
+#     # Combine features to be scaled and those that do not need scaling separately
+#     features_to_scale = historical_features  # Only the first 8 features will be scaled
+#     other_features = soil_type_features  # Include additional unscaled features if necessary
+
+#     return features_to_scale, other_features
+
+# def predict_P_K(model_P, model_K, scaler, input_features):
+#     features_to_scale, other_features = input_features
+#     logger.debug(f"Features before scaling: {features_to_scale}")
+    
+#     # Impute missing values in the features to scale
+#     imputer = SimpleImputer(strategy='mean')
+#     features_to_scale = imputer.fit_transform([features_to_scale])
+    
+#     input_scaled = scaler.transform(features_to_scale)
+#     logger.debug(f"Features after scaling: {input_scaled}")
+
+#     # Use only the scaled features for prediction
+#     P_level = model_P.predict(input_scaled)[0]
+#     K_level = model_K.predict(input_scaled)[0]
+#     logger.debug(f"Predicted P: {P_level}, Predicted K: {K_level}")
+#     return P_level, K_level
+
+# def recommend_crop(P_level, K_level, temp=None, humidity=None, ph=None, rainfall=None, soil_type_encoded=None):
+#     logger.debug(f"Recommending crop based on P: {P_level}, K: {K_level}, temp: {temp}, humidity: {humidity}, ph: {ph}, rainfall: {rainfall}, soil_type_encoded: {soil_type_encoded}")
+
+#     # Provide default values for features if they are None
+#     temp = temp if temp is not None else 25.0  # Default temperature in Celsius
+#     humidity = humidity if humidity is not None else 50.0  # Default humidity in percentage
+#     ph = ph if ph is not None else 6.5  # Default pH value
+#     rainfall = rainfall if rainfall is not None else 100.0  # Default rainfall in mm
+#     soil_type_encoded = soil_type_encoded if soil_type_encoded is not None else 0  # Default soil type
+
+#     # Prepare the input features in the order expected by the model
+#     input_features = np.array([[P_level, K_level, temp, humidity, ph, rainfall, soil_type_encoded]])
+
+#     # Impute missing values in the input features (7 features expected)
+#     crop_imputer = SimpleImputer(strategy='mean')
+#     input_features = crop_imputer.fit_transform(input_features)
+
+#     # Use the loaded Decision Tree model to predict the crop
+#     decision_tree_model = joblib.load('DecisionTree.pkl')
+#     predicted_crop = decision_tree_model.predict(input_features)[0]
+
+#     logger.debug(f"Recommended Crop: {predicted_crop}")
+#     return predicted_crop
+
+# # Functions to fetch data from external APIs
+# def get_historical_ag_weather_data(lat, lon):
+#     start_date = "2024-08-09"  # Example start date
+#     end_date = "2024-08-10"    # Example end date
+#     url = f'https://api.weatherbit.io/v2.0/history/agweather?lat={lat}&lon={lon}&start_date={start_date}&end_date={end_date}&key={settings.WEATHERBIT_API_KEY}'
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return response.json()
+#     else:
+#         logger.error('Failed to fetch data from Weatherbit API (Historical Ag-Weather)')
+#         return {}
+
+# def get_ag_weather_forecast_data(lat, lon):
+#     url = f'https://api.weatherbit.io/v2.0/forecast/agweather?lat={lat}&lon={lon}&key={settings.WEATHERBIT_API_KEY}'
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return response.json()
+#     else:
+#         logger.error('Failed to fetch data from Weatherbit API (Ag-Weather Forecast)')
+#         return {}
+
+# def get_current_air_quality_data(lat, lon):
+#     url = f'http://api.weatherbit.io/v2.0/current/airquality?lat={lat}&lon={lon}&key={settings.WEATHERBIT_API_KEY}'
+#     response = requests.get(url)
+#     if response.status_code == 200:
+#         return response.json()
+#     else:
+#         logger.error('Failed to fetch data from Weatherbit API (Current Air Quality)')
+#         return {}
+
+# def get_soil_data_data(lat, lon):
+#     depths = ['0-5cm', '5-15cm', '15-30cm', '30-60cm', '60-100cm', '100-200cm']
+#     properties = ['bdod', 'cec', 'cfvo', 'clay', 'nitrogen', 'ocd', 'ocs', 'phh2o', 'sand', 'silt', 'soc', 'wv0010', 'wv0033', 'wv1500']
+#     values = ['Q0.5', 'Q0.05', 'Q0.95', 'mean', 'uncertainty']
+
+#     params = {
+#         "lat": lat,
+#         "lon": lon,
+#         "depth": depths,
+#         "property": properties,
+#         "value": values,
+#     }
+
+#     url = "https://rest.isric.org/soilgrids/v2.0/properties/query"
+#     response = requests.get(url, params=params)
+#     if response.status_code == 200:
+#         return response.json()
+#     else:
+#         logger.error('Failed to fetch data from the SoilGrids API')
+#         return {}
+
+# def get_soil_type_data(lat, lon):
+#     url = "https://api-test.openepi.io/soil/type"
+#     params = {
+#         "lat": lat,
+#         "lon": lon,
+#         "top_k": 1,
+#     }
+#     response = requests.get(url, params=params)
+#     if (response.status_code == 200):
+#         return response.json()
+#     else:
+#         logger.error('Failed to fetch data from the soil type API')
+#         return {}
+
+# # Initialize the model at server start-up                   
+# logger.debug("Initializing models and encoders at server start-up...")
+# X, y_P, y_K = load_data()
+# model_P, model_K, scaler = train_model(X, y_P, y_K)
+# logger.debug("Models initialized successfully.")
+
 from django.http import JsonResponse
 import json
 import requests
@@ -4463,13 +4934,6 @@ import logging
 import joblib
 from sklearn.preprocessing import LabelEncoder
 from sklearn.impute import SimpleImputer
-
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import StandardScaler
-import numpy as np
-import joblib
 
 # Function to load data
 def load_data():
@@ -4514,7 +4978,6 @@ def train_model(X, y_P, y_K):
     logger.debug("Models and scaler saved successfully.")
 
     return rf_P, rf_K, scaler
-
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -4719,7 +5182,7 @@ def crop_prediction_view(request):
             if soil_type in soil_types:
                 soil_type_encoded = soil_type_encoder.transform([soil_type])[0]
             else:
-                soil_type_encoded = -1  # Use a default value for unknown soil types
+                soil_type_encoded = -1 
 
             logger.debug(f"Received data: Latitude: {lat}, Longitude: {lon}, Temp: {temp}, Humidity: {humidity}, pH: {ph}, Rainfall: {rainfall}, Soil Type: {soil_type}")
 
@@ -4764,13 +5227,8 @@ def run_prediction(lat, lon, temp, humidity, ph, rainfall, soil_type_encoded, re
 
         logger.debug(f"Predicted P: {P_level}, Predicted K: {K_level}")
 
-        # Recommend crop based on predicted P and K levels and additional features
-        recommended_crop1 = recommend_crop(P_level, K_level, temp, humidity, ph, rainfall, soil_type_encoded)
-        logger.debug(f"Recommended Crop: {recommended_crop1}")
-
         response_data['predicted_P'] = P_level
         response_data['predicted_K'] = K_level
-        response_data['recommended_crop1'] = recommended_crop1
     except Exception as e:
         logger.error(f"Error during prediction: {str(e)}")
         response_data['error'] = str(e)
@@ -4824,30 +5282,6 @@ def predict_P_K(model_P, model_K, scaler, input_features):
     logger.debug(f"Predicted P: {P_level}, Predicted K: {K_level}")
     return P_level, K_level
 
-def recommend_crop(P_level, K_level, temp=None, humidity=None, ph=None, rainfall=None, soil_type_encoded=None):
-    logger.debug(f"Recommending crop based on P: {P_level}, K: {K_level}, temp: {temp}, humidity: {humidity}, ph: {ph}, rainfall: {rainfall}, soil_type_encoded: {soil_type_encoded}")
-
-    # Provide default values for features if they are None
-    temp = temp if temp is not None else 25.0  # Default temperature in Celsius
-    humidity = humidity if humidity is not None else 50.0  # Default humidity in percentage
-    ph = ph if ph is not None else 6.5  # Default pH value
-    rainfall = rainfall if rainfall is not None else 100.0  # Default rainfall in mm
-    soil_type_encoded = soil_type_encoded if soil_type_encoded is not None else 0  # Default soil type
-
-    # Prepare the input features in the order expected by the model
-    input_features = np.array([[P_level, K_level, temp, humidity, ph, rainfall, soil_type_encoded]])
-
-    # Impute missing values in the input features (7 features expected)
-    crop_imputer = SimpleImputer(strategy='mean')
-    input_features = crop_imputer.fit_transform(input_features)
-
-    # Use the loaded Decision Tree model to predict the crop
-    decision_tree_model = joblib.load('DecisionTree.pkl')
-    predicted_crop = decision_tree_model.predict(input_features)[0]
-
-    logger.debug(f"Recommended Crop: {predicted_crop}")
-    return predicted_crop
-
 # Functions to fetch data from external APIs
 def get_historical_ag_weather_data(lat, lon):
     start_date = "2024-08-09"  # Example start date
@@ -4863,7 +5297,7 @@ def get_historical_ag_weather_data(lat, lon):
 def get_ag_weather_forecast_data(lat, lon):
     url = f'https://api.weatherbit.io/v2.0/forecast/agweather?lat={lat}&lon={lon}&key={settings.WEATHERBIT_API_KEY}'
     response = requests.get(url)
-    if response.status_code == 200:
+    if (response.status_code == 200):
         return response.json()
     else:
         logger.error('Failed to fetch data from Weatherbit API (Ag-Weather Forecast)')
@@ -4893,7 +5327,7 @@ def get_soil_data_data(lat, lon):
 
     url = "https://rest.isric.org/soilgrids/v2.0/properties/query"
     response = requests.get(url, params=params)
-    if response.status_code == 200:
+    if (response.status_code == 200):
         return response.json()
     else:
         logger.error('Failed to fetch data from the SoilGrids API')
