@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Roboto:wght@400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+*{
+  margin:0;
+  padding:0;
+}
+html {
+  scroll-behavior: smooth;
+}
+
+body{
+  background: url('/bg.png') no-repeat center center fixed;
+  background-size: cover;
+  background-position:fixed !important;
+}
+@media (max-width: 768px) {
+  body, html, #root {
+    background-position: 20% center; /* Adjust the percentage as needed */
+  }
+}
+/* src/index.css or src/styles/globals.css */
+.header-font {
+  font-family: 'Poppins', sans-serif;
+}
+
+.body-font {
+  font-family: 'Roboto', sans-serif;
+}
